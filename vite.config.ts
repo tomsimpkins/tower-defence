@@ -1,1 +1,5 @@
-export default { base: '/<repo>/' }
+import { defineConfig } from 'vite';
+
+export default defineConfig({
+  base: '/tower-defence/',   // <-- IMPORTANT
+});
