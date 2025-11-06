@@ -10,7 +10,7 @@ import {
 	TR,
 	T,
 	R,
-	B,
+	
 	L,
 } from "./tiles";
 

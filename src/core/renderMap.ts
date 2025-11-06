@@ -73,84 +73,84 @@ export const diagPoints = (
 	];
 };
 
-const renderers2: Renderer[] = [
-	// none
-	(ctx, x, y, w, h) => {},
-	// TL
-	(ctx, x, y, w, h) => {
-		const cs = cornerPoints(0, x, y, w, h);
-		drawPoly(ctx, cs);
-	},
-	// TR
-	(ctx, x, y, w, h) => {
-		const cs = cornerPoints(1, x, y, w, h);
-		drawPoly(ctx, cs);
-	},
-	// TL | TR,
-	(ctx, x, y, w, h) => {
-		const es = edgePoints(0, x, y, w, h);
-		drawPoly(ctx, es);
-	},
-	// BL
-	(ctx, x, y, w, h) => {
-		const cs = cornerPoints(3, x, y, w, h);
-		drawPoly(ctx, cs);
-	},
-	// TL | BL,
-	(ctx, x, y, w, h) => {
-		const es = edgePoints(3, x, y, w, h);
-		drawPoly(ctx, es);
-	},
-	// TR | BL,
-	(ctx, x, y, w, h) => {
-		const ds = diagPoints(1, x, y, w, h);
-		drawPoly(ctx, ds);
-	},
-	// TL | TR | BL,
-	(ctx, x, y, w, h) => {
-		const ics = inverseCornerPoints(2, x, y, w, h);
-		drawPoly(ctx, ics);
-	},
-	// BR,
-	(ctx, x, y, w, h) => {
-		const cs = cornerPoints(2, x, y, w, h);
-		drawPoly(ctx, cs);
-	},
-	// TL | BR,
-	(ctx, x, y, w, h) => {
-		const ds = diagPoints(0, x, y, w, h);
-		drawPoly(ctx, ds);
-	},
-	// TR | BR,
-	(ctx, x, y, w, h) => {
-		const es = edgePoints(1, x, y, w, h);
-		drawPoly(ctx, es);
-	},
-	// TL | TR | BR,
-	(ctx, x, y, w, h) => {
-		const ics = inverseCornerPoints(3, x, y, w, h);
-		drawPoly(ctx, ics);
-	},
-	// BL | BR,
-	(ctx, x, y, w, h) => {
-		const es = edgePoints(2, x, y, w, h);
-		drawPoly(ctx, es);
-	},
-	// TL | BL | BR,
-	(ctx, x, y, w, h) => {
-		const ics = inverseCornerPoints(1, x, y, w, h);
-		drawPoly(ctx, ics);
-	},
-	// TR | BL | BR,
-	(ctx, x, y, w, h) => {
-		const ics = inverseCornerPoints(0, x, y, w, h);
-		drawPoly(ctx, ics);
-	},
-	// TL | TR | BL | BR
-	(ctx, x, y, w, h) => {
-		drawPoly(ctx, corners(x, y, w, h));
-	},
-];
+// const renderers2: Renderer[] = [
+// 	// none
+// 	(ctx, x, y, w, h) => {},
+// 	// TL
+// 	(ctx, x, y, w, h) => {
+// 		const cs = cornerPoints(0, x, y, w, h);
+// 		drawPoly(ctx, cs);
+// 	},
+// 	// TR
+// 	(ctx, x, y, w, h) => {
+// 		const cs = cornerPoints(1, x, y, w, h);
+// 		drawPoly(ctx, cs);
+// 	},
+// 	// TL | TR,
+// 	(ctx, x, y, w, h) => {
+// 		const es = edgePoints(0, x, y, w, h);
+// 		drawPoly(ctx, es);
+// 	},
+// 	// BL
+// 	(ctx, x, y, w, h) => {
+// 		const cs = cornerPoints(3, x, y, w, h);
+// 		drawPoly(ctx, cs);
+// 	},
+// 	// TL | BL,
+// 	(ctx, x, y, w, h) => {
+// 		const es = edgePoints(3, x, y, w, h);
+// 		drawPoly(ctx, es);
+// 	},
+// 	// TR | BL,
+// 	(ctx, x, y, w, h) => {
+// 		const ds = diagPoints(1, x, y, w, h);
+// 		drawPoly(ctx, ds);
+// 	},
+// 	// TL | TR | BL,
+// 	(ctx, x, y, w, h) => {
+// 		const ics = inverseCornerPoints(2, x, y, w, h);
+// 		drawPoly(ctx, ics);
+// 	},
+// 	// BR,
+// 	(ctx, x, y, w, h) => {
+// 		const cs = cornerPoints(2, x, y, w, h);
+// 		drawPoly(ctx, cs);
+// 	},
+// 	// TL | BR,
+// 	(ctx, x, y, w, h) => {
+// 		const ds = diagPoints(0, x, y, w, h);
+// 		drawPoly(ctx, ds);
+// 	},
+// 	// TR | BR,
+// 	(ctx, x, y, w, h) => {
+// 		const es = edgePoints(1, x, y, w, h);
+// 		drawPoly(ctx, es);
+// 	},
+// 	// TL | TR | BR,
+// 	(ctx, x, y, w, h) => {
+// 		const ics = inverseCornerPoints(3, x, y, w, h);
+// 		drawPoly(ctx, ics);
+// 	},
+// 	// BL | BR,
+// 	(ctx, x, y, w, h) => {
+// 		const es = edgePoints(2, x, y, w, h);
+// 		drawPoly(ctx, es);
+// 	},
+// 	// TL | BL | BR,
+// 	(ctx, x, y, w, h) => {
+// 		const ics = inverseCornerPoints(1, x, y, w, h);
+// 		drawPoly(ctx, ics);
+// 	},
+// 	// TR | BL | BR,
+// 	(ctx, x, y, w, h) => {
+// 		const ics = inverseCornerPoints(0, x, y, w, h);
+// 		drawPoly(ctx, ics);
+// 	},
+// 	// TL | TR | BL | BR
+// 	(ctx, x, y, w, h) => {
+// 		drawPoly(ctx, corners(x, y, w, h));
+// 	},
+// ];
 export const drawPanelBase = (
 	ctx: Any2DCanvasContext,
 	x: number,

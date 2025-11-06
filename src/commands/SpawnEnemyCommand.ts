@@ -5,17 +5,8 @@ import { Moving } from "../components/Moving";
 import { Positioned } from "../components/Positioned";
 import { BaseComponent } from "../core";
 import { type Point } from "../core/point";
-import { ENEMY_RADIUS, ENEMY_SIZE } from "../globals";
+import { ENEMY_RADIUS,  } from "../globals";
 
-class DrawDimensions extends BaseComponent {
-	w: number;
-	h: number;
-	constructor(offsetX: number, offsetY: number, w: number, h: number) {
-		super();
-		this.w = w;
-		this.h = h;
-	}
-}
 
 export class CenterPoint extends BaseComponent {
 	offsetX: number;

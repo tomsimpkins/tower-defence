@@ -108,7 +108,7 @@ world.addSystem(new MaxDistanceTravelableSystem());
 world.addSystem(new DespawnEntitySystem());
 
 class EnemyWaveSystem extends BaseSystem {
-	execute(world: World, dt: number): void {
+	execute(world: World): void {
 		const enemyEntities = world.query(EnemyTag);
 		const targetEnemyCount = 200;
 
