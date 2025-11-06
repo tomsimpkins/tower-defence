@@ -5,8 +5,7 @@ import { Moving } from "../components/Moving";
 import { Positioned } from "../components/Positioned";
 import { BaseComponent } from "../core";
 import { type Point } from "../core/point";
-import { ENEMY_RADIUS,  } from "../globals";
-
+import { ENEMY_RADIUS } from "../globals";
 
 export class CenterPoint extends BaseComponent {
 	offsetX: number;

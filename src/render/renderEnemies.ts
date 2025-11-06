@@ -175,13 +175,15 @@ const radToDeg = (rad: number) => {
 };
 const degToRad = (n: number) => (n * Math.PI) / 180;
 
+const ENEMY_CELL_PADDING = 5;
 const ENEMY_SIZE = 2 * ENEMY_RADIUS;
+const ENEMY_CELL_SIZE = ENEMY_SIZE + 2 * ENEMY_CELL_PADDING;
 const ENEMY_KIND_OPTIONS = 3;
 const DAMAGE_OPTIONS = 2;
 const DEGREE_OPTIONS = 360;
 const offscreenCanvas = new OffscreenCanvas(
-	DEGREE_OPTIONS * ENEMY_SIZE,
-	ENEMY_KIND_OPTIONS * DAMAGE_OPTIONS * ENEMY_SIZE,
+	DEGREE_OPTIONS * ENEMY_CELL_SIZE,
+	ENEMY_KIND_OPTIONS * DAMAGE_OPTIONS * ENEMY_CELL_SIZE,
 );
 
 const offscreenCtx = offscreenCanvas.getContext("2d")!;
@@ -207,13 +209,18 @@ const predrawEnemy = (ctx: Any2DCanvasContext) => {
 		for (const damaged of [true, false]) {
 			for (let deg = 0; deg < 360; deg++) {
 				const [ix, iy] = getIndex2(enemyKind, damaged, deg);
-				drawEnemy(ctx, ix * ENEMY_SIZE, iy * ENEMY_SIZE, {
-					damaged,
-					kind: enemyKind,
-					angle: degToRad(deg),
-					teamColor: "red",
-					r: ENEMY_RADIUS,
-				});
+				drawEnemy(
+					ctx,
+					ix * ENEMY_CELL_SIZE + ENEMY_CELL_PADDING,
+					iy * ENEMY_CELL_SIZE + ENEMY_CELL_PADDING,
+					{
+						damaged,
+						kind: enemyKind,
+						angle: degToRad(deg),
+						teamColor: "red",
+						r: ENEMY_RADIUS,
+					},
+				);
 			}
 		}
 	}
@@ -233,14 +240,14 @@ const drawFromCache = (
 
 	ctx.drawImage(
 		offscreenCanvas,
-		ix * ENEMY_SIZE,
-		iy * ENEMY_SIZE,
-		2 * ENEMY_RADIUS,
-		2 * ENEMY_RADIUS,
+		ix * ENEMY_CELL_SIZE + ENEMY_CELL_PADDING,
+		iy * ENEMY_CELL_SIZE + ENEMY_CELL_PADDING,
+		ENEMY_SIZE,
+		ENEMY_SIZE,
 		cx,
 		cy,
-		2 * ENEMY_RADIUS,
-		2 * ENEMY_RADIUS,
+		ENEMY_SIZE,
+		ENEMY_SIZE,
 	);
 };
 
@@ -248,7 +255,8 @@ predrawEnemy(offscreenCtx);
 
 export const renderEnemies = (world: World, ctx: CanvasRenderingContext2D) => {
 	const enemies = world.query(EnemyTag, Positioned, Moving, Health);
-	for (const enemyEntity of enemies) {
+	for (let i = enemies.length - 1; i >= 0; i--) {
+		const enemyEntity = enemies[i];
 		const position = world.mustGetComponent<Positioned>(
 			Positioned,
 			enemyEntity,
@@ -258,11 +266,10 @@ export const renderEnemies = (world: World, ctx: CanvasRenderingContext2D) => {
 		const moving = world.mustGetComponent(Moving, enemyEntity);
 		const deg = Math.atan2(moving.vy, moving.vx);
 
-		drawEnemy(ctx, position.x, position.y, {
+		drawFromCache(ctx, position.x, position.y, {
 			damaged,
-			kind: "arrow",
+			kind: "orb",
 			angle: deg,
-			r: ENEMY_RADIUS,
 		});
 	}
 };
