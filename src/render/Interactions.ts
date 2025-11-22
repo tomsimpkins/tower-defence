@@ -1,7 +1,8 @@
-import type { World } from "../core";
 import type { Point } from "../core/point";
+import { UIEventBus } from "../core/UIEventBus";
+import { type IStore } from "../store";
 
-type PointerState =
+export type InteractionsState =
 	| {
 			type: "inactive";
 	  }
@@ -11,18 +12,24 @@ type PointerState =
 			pointerId: number;
 			startScreen: Point;
 			startWorld: Point;
+			currentWorld: Point;
 	  };
 
 export class Interactions {
 	private canvas: HTMLCanvasElement;
-	private world: World;
+	private uiEventBus: UIEventBus;
 
 	private dragThresholdPx: number = 5;
-	private state: PointerState = { type: "inactive" };
+	private store: IStore<InteractionsState>;
 
-	constructor(canvas: HTMLCanvasElement, world: World) {
+	constructor(
+		canvas: HTMLCanvasElement,
+		uiEventBus: UIEventBus,
+		store: IStore<InteractionsState>,
+	) {
 		this.canvas = canvas;
-		this.world = world;
+		this.uiEventBus = uiEventBus;
+		this.store = store;
 
 		canvas.addEventListener("pointerdown", this.onPointerDown);
 		canvas.addEventListener("pointermove", this.onPointerMove);
@@ -36,7 +43,8 @@ export class Interactions {
 	}
 
 	private onPointerDown = (e: PointerEvent) => {
-		if (this.state.type !== "inactive") {
+		const state = this.store.getState();
+		if (state.type !== "inactive") {
 			return;
 		}
 
@@ -44,65 +52,59 @@ export class Interactions {
 			return;
 		}
 
-		this.state = {
+		this.store.setState(() => ({
 			type: "down",
 			pointerId: e.pointerId,
 			startScreen: { x: e.clientX, y: e.clientY },
 			startWorld: this.getWorldPos(e),
-		};
+		}));
 
 		this.canvas.setPointerCapture(e.pointerId);
 	};
 
 	private onPointerMove = (e: PointerEvent) => {
-		const state = this.state;
+		const state = this.store.getState();
 
 		if (state.type === "down" && state.pointerId === e.pointerId) {
 			const dx = e.clientX - state.startScreen.x;
 			const dy = e.clientY - state.startScreen.y;
 			if (dx * dx + dy * dy >= this.dragThresholdPx * this.dragThresholdPx) {
-				this.state = {
+				const { x, y } = this.getWorldPos(e);
+
+				this.store.setState(() => ({
 					type: "dragging",
 					pointerId: state.pointerId,
 					startScreen: state.startScreen,
 					startWorld: state.startWorld,
-				};
-
-				const { x, y } = this.getWorldPos(e);
-				this.world.enqueueUIEvent({
-					type: "dragstart",
-					startX: state.startWorld.x,
-					startY: state.startWorld.y,
-					x,
-					y,
-				});
+					currentWorld: { x, y },
+				}));
 			}
 		}
 
 		if (state.type === "dragging" && state.pointerId === e.pointerId) {
 			const { x, y } = this.getWorldPos(e);
-			this.world.enqueueUIEvent({
-				type: "dragmove",
-				startX: state.startWorld.x,
-				startY: state.startWorld.y,
-				x,
-				y,
-			});
+			this.store.setState(() => ({
+				type: "dragging",
+				pointerId: state.pointerId,
+				startScreen: state.startScreen,
+				startWorld: state.startWorld,
+				currentWorld: { x, y },
+			}));
 		}
 	};
 
 	private onPointerUp = (e: PointerEvent) => {
-		const state = this.state;
+		const state = this.store.getState();
 		const { x, y } = this.getWorldPos(e);
 		if (state.type === "down" && e.pointerId === state.pointerId) {
-			this.state = { type: "inactive" };
+			this.store.setState(() => ({ type: "inactive" }));
 
 			try {
 				this.canvas.releasePointerCapture(state.pointerId);
 			} catch {}
 
 			// Treat as a click (movement stayed under threshold).
-			this.world.enqueueUIEvent({
+			this.uiEventBus.enqueueUIEvent({
 				type: "click",
 				x,
 				y,
@@ -113,13 +115,13 @@ export class Interactions {
 		}
 
 		if (state.type === "dragging" && e.pointerId === state.pointerId) {
-			this.state = { type: "inactive" };
+			this.store.setState(() => ({ type: "inactive" }));
 
 			try {
 				this.canvas.releasePointerCapture(state.pointerId);
 			} catch {}
 
-			this.world.enqueueUIEvent({
+			this.uiEventBus.enqueueUIEvent({
 				type: "dragend",
 				startX: state.startWorld.x,
 				startY: state.startWorld.y,

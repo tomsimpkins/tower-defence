@@ -1,5 +1,6 @@
 import { CELL_SIZE, GRID_HEIGHT, GRID_WIDTH } from "../globals";
 import type { Any2DCanvasContext } from "../render/canvasUtils";
+import { makeTowerPalette } from "../render/makeTowerPalette";
 import { rand } from "./mulberry32";
 import { pointFromId } from "./point";
 import { waveFunctionCollapse } from "./waveFunctionCollapse";
@@ -302,6 +303,69 @@ export const drawToOffscreen = (ctx: Any2DCanvasContext) => {
 	}
 };
 
+// --- selection helpers -------------------------------------------------------
+function lerp(a: number, b: number, t: number) {
+	return a + (b - a) * t;
+}
+
+function drawSelectRing(
+	ctx: Any2DCanvasContext,
+	cx: number,
+	cy: number,
+	r: number,
+	team: string,
+	palette: ReturnType<typeof makeTowerPalette>,
+	t: number,
+) {
+	// rotating arc + faint full ring
+	const rot = (t * 0.006) % (Math.PI * 2); // ~1 rev / ~1.7s
+	const sweep = Math.PI * 0.85;
+
+	// faint base ring
+	ctx.beginPath();
+	ctx.arc(cx, cy, r, 0, Math.PI * 2);
+	ctx.strokeStyle = palette.ringStroke;
+	ctx.globalAlpha = 0.35;
+	ctx.lineWidth = Math.max(1, r / 5);
+	ctx.stroke();
+
+	// bright team arc
+	ctx.beginPath();
+	ctx.arc(cx, cy, r, rot, rot + sweep);
+	ctx.strokeStyle = team;
+	ctx.globalAlpha = 0.95;
+	ctx.lineWidth = Math.max(2, r / 4);
+	ctx.lineCap = "butt";
+	ctx.setLineDash([]);
+	ctx.stroke();
+
+	ctx.globalAlpha = 1;
+}
+
+function pulseHalo(
+	ctx: Any2DCanvasContext,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	team: string,
+	t: number,
+) {
+	// simple alpha pulse 0.08..0.18
+	const a = lerp(0.08, 0.18, (Math.sin(t * 0.008) + 1) / 2);
+	ctx.save();
+	ctx.shadowColor = team.replace("rgb", "rgba").replace(")", `,${a})`);
+	ctx.shadowBlur = Math.max(6, Math.min(w, h) / 8);
+	ctx.shadowOffsetX = 0;
+	ctx.shadowOffsetY = 0;
+
+	const p = new Path2D();
+	p.rect(x + 2, y + 2, w - 4, h - 4);
+	ctx.fillStyle = "transparent";
+	ctx.fill(p);
+	ctx.restore();
+}
+
 export const insetRect = (
 	x: number,
 	y: number,
@@ -533,5 +597,322 @@ export const renderMap = (() => {
 		}
 
 		ctx.drawImage(offscreenCanvas, 0, 0);
+		factoryBlock3x2(ctx, 3 * CELL_SIZE, 2 * CELL_SIZE, CELL_SIZE, CELL_SIZE, {
+			t: world.resource.ui.wallTime,
+		});
+		reactorHub2x2(ctx, 2 * CELL_SIZE, 6 * CELL_SIZE, CELL_SIZE, CELL_SIZE, {
+			t: world.resource.ui.wallTime,
+		});
 	};
 })();
+
+function ambientPerimeterTrack(
+	ctx: Any2DCanvasContext,
+	rect: [number, number][], // path from insetRect(...)
+	team: string,
+	palette: ReturnType<typeof makeTowerPalette>,
+	t?: number,
+) {
+	const time =
+		t ?? (typeof performance !== "undefined" ? performance.now() : 0);
+	const path = buildPath(rect);
+
+	// faint base outline for readability
+	ctx.strokeStyle = palette.ringStroke;
+	ctx.globalAlpha = 0.25;
+	ctx.lineWidth = 1;
+	ctx.setLineDash([]);
+	ctx.stroke(path);
+
+	// animated team “chase” along the perimeter
+	ctx.strokeStyle = team;
+	ctx.globalAlpha = 0.18; // subtle
+	ctx.lineWidth = 2;
+	const dash = 14; // dash length (px)
+	const gap = 10; // gap (px)
+	ctx.setLineDash([dash, gap]);
+	// scroll the dash around the path
+	ctx.lineDashOffset = -((time * 0.06) % (dash + gap)); // slow drift
+	ctx.stroke(path);
+
+	// cleanup
+	ctx.globalAlpha = 1;
+	ctx.setLineDash([]);
+	ctx.lineDashOffset = 0;
+}
+
+// --- subtle ambient accent (always on) --------------------------------------
+function ambientAccentRing(
+	ctx: Any2DCanvasContext,
+	cx: number,
+	cy: number,
+	r: number,
+	team: string,
+	palette: ReturnType<typeof makeTowerPalette>,
+	t?: number,
+) {
+	const time =
+		t ?? (typeof performance !== "undefined" ? performance.now() : 0);
+	const rot = (time * 0.0012) % (Math.PI * 2); // slow: ~1 rev / ~5.2s
+	const sweep = Math.PI * 0.55; // shorter, subtler arc
+
+	// faint base ring (structure/readability)
+	ctx.beginPath();
+	ctx.arc(cx, cy, r, 0, Math.PI * 2);
+	ctx.strokeStyle = palette.ringStroke;
+	ctx.globalAlpha = 0.25;
+	ctx.lineWidth = Math.max(1, r / 6); // thin
+	ctx.setLineDash([]);
+	ctx.stroke();
+
+	// soft team arc (very low alpha)
+	ctx.beginPath();
+	ctx.arc(cx, cy, r, rot, rot + sweep);
+	ctx.strokeStyle = team;
+	ctx.globalAlpha = 0.18;
+	ctx.lineWidth = Math.max(1, r / 5);
+	ctx.lineCap = "butt";
+	// tiny feather: draw again slightly inside radius
+	ctx.stroke();
+	ctx.beginPath();
+	ctx.arc(cx, cy, r - 1, rot, rot + sweep);
+	ctx.globalAlpha = 0.1;
+	ctx.stroke();
+
+	ctx.globalAlpha = 1;
+}
+
+// softer static halo (no pulse)
+function faintHalo(
+	ctx: Any2DCanvasContext,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	palette: ReturnType<typeof makeTowerPalette>,
+) {
+	ctx.save();
+	ctx.shadowColor = palette.highlight; // already low alpha in palette
+	ctx.shadowBlur = Math.max(4, Math.min(w, h) / 12);
+	ctx.shadowOffsetX = 0;
+	ctx.shadowOffsetY = 0;
+	const p = new Path2D();
+	p.rect(x + 2, y + 2, w - 4, h - 4);
+	ctx.fillStyle = "transparent";
+	ctx.fill(p);
+	ctx.restore();
+}
+
+function buildingFrame(
+	ctx: Any2DCanvasContext,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	palette: ReturnType<typeof makeTowerPalette>,
+) {
+	// base slab
+	ctx.fillStyle = palette.baseFill;
+	ctx.fillRect(x, y, w, h);
+
+	// inner plate
+	const pad = Math.max(4, (Math.min(w, h) / 10) | 0);
+	const inner = insetRect(x, y, w, h, pad);
+	fillPath(ctx, inner, palette.innerFill);
+	strokePath(ctx, inner, palette.baseStroke, Math.max(1, Math.min(w, h) / 80));
+
+	// outer outline
+	strokePath(ctx, insetRect(x, y, w, h, 1), palette.outline, 1);
+
+	// subtle top highlight (like your turret top edge)
+	const top = [
+		[x + pad + 1, y + pad + 1],
+		[x + w - pad - 1, y + pad + 1],
+		[x + w - pad - 1, y + pad + 2],
+		[x + pad + 1, y + pad + 2],
+	] as [number, number][];
+	strokePath(ctx, top, palette.highlight, 1);
+}
+
+function lightStuds(
+	ctx: Any2DCanvasContext,
+	pts: [number, number][],
+	size: number,
+	color: string,
+) {
+	ctx.fillStyle = color;
+	for (const [sx, sy] of pts) {
+		ctx.fillRect((sx - size / 2) | 0, (sy - size / 2) | 0, size, size);
+	}
+}
+type BuildingOpts = {
+	teamColor?: string;
+	selected?: boolean;
+	sizeMult?: number;
+	palette?: ReturnType<typeof makeTowerPalette>;
+	t?: number; // <-- NEW: animation time (e.g. performance.now())
+};
+
+export function reactorHub2x2(
+	ctx: Any2DCanvasContext,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	opts: {
+		teamColor?: string;
+		sizeMult?: number;
+		palette?: ReturnType<typeof makeTowerPalette>;
+		t?: number;
+	} = {},
+) {
+	const cell = w;
+	if (((x / cell) | 0) % 2 !== 0 || ((y / cell) | 0) % 2 !== 0) return;
+
+	const palette = makeTowerPalette(opts.palette || {});
+	const team = opts.teamColor ?? palette.gunAccent;
+	const S = 2 * cell * (opts.sizeMult ?? 1);
+
+	// base + frame
+	faintHalo(ctx, x, y, S, S, palette);
+	buildingFrame(ctx, x, y, S, S, palette);
+
+	const cx = x + S / 2,
+		cy = y + S / 2;
+
+	// --- draw inner recess and dome first (so the ring won’t be covered) ---
+	const pad1 = Math.max(6, (S / 12) | 0);
+	const pad2 = pad1 + Math.max(4, (S / 24) | 0);
+	drawTrench(ctx, insetRect(x, y, S, S, pad1), S);
+	strokePath(
+		ctx,
+		insetRect(x, y, S, S, pad2),
+		palette.innerStroke,
+		Math.max(1, S / 120),
+	);
+
+	const domeR = Math.max(5, (S / 10) | 0);
+	ctx.beginPath();
+	ctx.arc(cx, cy, domeR + 2, 0, Math.PI * 2);
+	ctx.fillStyle = palette.slitBg;
+	ctx.fill();
+	ctx.beginPath();
+	ctx.arc(cx, cy, domeR, 0, Math.PI * 2);
+	ctx.fillStyle = palette.innerFill;
+	ctx.fill();
+	ctx.strokeStyle = palette.outline;
+	ctx.lineWidth = 1;
+	ctx.stroke();
+
+	// team pips
+	const pip = Math.max(2, (S / 60) | 0);
+	lightStuds(
+		ctx,
+		[
+			[cx, y + pad1 + 2],
+			[x + S - pad1 - 2, cy],
+			[cx, y + S - pad1 - 2],
+			[x + pad1 + 2, cy],
+		],
+		pip + 1,
+		team,
+	);
+
+	// --- draw the subtle ambient ring last, slightly outside the dome ---
+	const margin = Math.max(3, (S / 40) | 0);
+	const ringR = domeR + margin; // make sure it clears the dome
+	ambientAccentRing(ctx, cx, cy, ringR, team, palette, opts.t);
+}
+
+export function factoryBlock3x2(
+	ctx: Any2DCanvasContext,
+	x: number,
+	y: number,
+	w: number,
+	h: number,
+	opts: {
+		teamColor?: string;
+		sizeMult?: number;
+		palette?: ReturnType<typeof makeTowerPalette>;
+		t?: number;
+	} = {},
+) {
+	const cell = w;
+	if (((x / cell) | 0) % 3 !== 0 || ((y / cell) | 0) % 2 !== 0) return;
+
+	const palette = makeTowerPalette(opts.palette || {});
+	const team = opts.teamColor ?? palette.gunAccent;
+
+	const W = 3 * cell * (opts.sizeMult ?? 1);
+	const H = 2 * cell * (opts.sizeMult ?? 1);
+
+	faintHalo(ctx, x, y, W, H, palette);
+	buildingFrame(ctx, x, y, W, H, palette);
+
+	const pad1 = Math.max(6, (Math.min(W, H) / 10) | 0);
+	const pad2 = pad1 + Math.max(4, (Math.min(W, H) / 16) | 0);
+
+	const step1 = insetRect(x, y, W, H, pad1);
+	const step2 = insetRect(x, y, W, H, pad2);
+
+	// stepped tops
+	fillPath(ctx, step1, palette.innerFill);
+	strokePath(
+		ctx,
+		step1,
+		palette.innerStroke,
+		Math.max(1, Math.min(W, H) / 100),
+	);
+
+	fillPath(ctx, step2, palette.baseFill);
+	strokePath(ctx, step2, palette.ringStroke, Math.max(1, Math.min(W, H) / 120));
+
+	// 🔄 NEW: ambient perimeter track that hugs the inner step
+	ambientPerimeterTrack(ctx, step2, team, palette, opts.t);
+
+	// slits (unchanged)
+	const slitW = Math.max(2, (Math.min(W, H) / 120) | 0);
+	ctx.fillStyle = palette.highlight;
+	ctx.fillRect(x + pad2 + 2, y + pad2 + 2, W - (pad2 + 2) * 2, slitW);
+	ctx.fillRect(
+		x + pad2 + 2,
+		y + H - pad2 - 2 - slitW,
+		W - (pad2 + 2) * 2,
+		slitW,
+	);
+
+	// vents (unchanged)
+	const ventX = x + (W * 2) / 3,
+		ventY = y + H / 6,
+		ventW = W / 3 - pad1,
+		ventH = (2 * H) / 3;
+	for (let i = 0; i < 4; i++) {
+		const yy = ventY + (i + 1) * (ventH / 5);
+		const p = Math.max(3, (W / 140) | 0);
+		const vent = [
+			[ventX + p, yy - 1],
+			[ventX + ventW - p, yy - 1],
+			[ventX + ventW - p, yy + 1],
+			[ventX + p, yy + 1],
+		] as [number, number][];
+		fillPath(ctx, vent, palette.slitBg);
+		strokePath(ctx, vent, palette.outline, 1);
+	}
+
+	// beacons (unchanged)
+	const towerW = Math.max(12, (W / 10) | 0);
+	const gap = Math.max(8, (W / 20) | 0);
+	const tbx0 = x + pad2 + gap,
+		tbx1 = tbx0 + towerW + gap,
+		tby = y + pad2 + gap;
+	const beaconSize = Math.max(3, (W / 100) | 0);
+	lightStuds(
+		ctx,
+		[
+			[tbx0 + towerW / 2, tby - 2],
+			[tbx1 + towerW / 2, tby - 2],
+		],
+		beaconSize,
+		team,
+	);
+}

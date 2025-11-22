@@ -1,18 +1,17 @@
 import { addPoints } from "./../core/point";
 import { Aim } from "../components/Aim";
-import { GunWeapon } from "../components/GunWeapon";
+import { ProjectileWeapon } from "../components/GunWeapon";
 import { Health } from "../components/Health";
 import { MaxRange } from "../components/MaxRange";
 import { Moving } from "../components/Moving";
 import { Positioned } from "../components/Positioned";
 import { Targeting } from "../components/Targeting";
 import { TargetingMode } from "../components/TargetingMode";
-import { TowerTag } from "../components/TowerTag";
 import { BaseSystem, World, type EntityId } from "../core";
 
-import { TOWER_SIZE } from "../globals";
-import { CenterPoint } from "../commands/SpawnEnemyCommand";
-import { FireGunTowerCommand } from "./FireGunTowerCommand";
+import { GRAVITY, TOWER_SIZE } from "../globals";
+import { CenterPoint } from "../components/CenterPoint";
+import { FireProjectileCommand } from "../commands/FireProjectileCommand";
 
 type Vec = { x: number; y: number };
 
@@ -67,8 +66,7 @@ export class GunAimingSystem extends BaseSystem {
 	execute(world: World): void {
 		const towerEntities = world.query(
 			Positioned,
-			TowerTag,
-			GunWeapon,
+			ProjectileWeapon,
 			Targeting,
 			Aim,
 			CenterPoint,
@@ -80,7 +78,7 @@ export class GunAimingSystem extends BaseSystem {
 				Targeting,
 				TargetingMode,
 				MaxRange,
-				GunWeapon,
+				ProjectileWeapon,
 				Aim,
 				CenterPoint,
 			]
@@ -90,7 +88,7 @@ export class GunAimingSystem extends BaseSystem {
 			world.mustGetComponent<Targeting>(Targeting, entityId),
 			world.mustGetComponent<TargetingMode>(TargetingMode, entityId),
 			world.mustGetComponent<MaxRange>(MaxRange, entityId),
-			world.mustGetComponent<GunWeapon>(GunWeapon, entityId),
+			world.mustGetComponent<ProjectileWeapon>(ProjectileWeapon, entityId),
 			world.mustGetComponent<Aim>(Aim, entityId),
 			world.mustGetComponent<CenterPoint>(CenterPoint, entityId),
 		]);
@@ -143,9 +141,20 @@ export class GunAimingSystem extends BaseSystem {
 				continue;
 			}
 
-			aim.velocity = bulletVelocity;
+			// ("s = ut + 1/2 at2");
+			// s = gunWeapon.projectileSpeed * intersectionTime
+			// u = (s - 1/2 at2) / t
+			const calculateZVelocity = () => {
+				return (
+					-(0.5 * GRAVITY * Math.pow(intersectionTime, 2)) / intersectionTime
+				);
+			};
 
-			world.enqueueCommand(new FireGunTowerCommand(towerId));
+			const zPrediction = calculateZVelocity();
+			// console.log(zPrediction)
+			aim.velocity = { ...bulletVelocity, z: zPrediction };
+
+			world.enqueueCommand(new FireProjectileCommand(towerId));
 		}
 	}
 }

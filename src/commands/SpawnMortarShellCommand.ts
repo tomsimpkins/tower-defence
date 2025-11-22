@@ -1,27 +1,28 @@
-import { BulletTag } from "../components/BulletTag";
 import { Damaging } from "../components/Damaging";
 import { HitBox } from "../components/Hitbox";
 import { MaxDistanceTravelable } from "../components/MaxRangeTravelable";
-
+import { MortarShellTag } from "../components/MortarTag";
 import { Moving } from "../components/Moving";
 import { Positioned } from "../components/Positioned";
-import { BULLET_SIZE } from "../globals";
-
+import { BULLET_SIZE, GRAVITY } from "../globals";
+import { Elevation } from "../components/Elevation";
 import { SpawnEntityCommand } from "./SpawnEntityCommand";
+import { FallingExplosive } from "../components/FallingExplosive";
 
-export const makeSpawnBulletCommand = (
+export const makeSpawnMortarShellCommand = (
 	x: number,
 	y: number,
 	vx: number,
 	vy: number,
-	maxRange: number = Infinity,
 	damage: number = 50,
+	vz: number = 10,
 ): SpawnEntityCommand => {
 	const bulletBoxSize = BULLET_SIZE * 0.9;
 	return SpawnEntityCommand.builder()
 		.addComponent(Positioned, new Positioned(x, y))
 		.addComponent(Moving, new Moving(vx, vy))
-		.addComponent(BulletTag, new BulletTag())
+		.addComponent(MortarShellTag, new MortarShellTag())
+		.addComponent(FallingExplosive, new FallingExplosive(damage, 22))
 		.addComponent(
 			HitBox,
 			new HitBox(
@@ -31,7 +32,10 @@ export const makeSpawnBulletCommand = (
 				bulletBoxSize,
 			),
 		)
-		.addComponent(MaxDistanceTravelable, new MaxDistanceTravelable(maxRange))
+		.addComponent(Elevation, new Elevation(0, vz, -(vz * vz) / (2 * GRAVITY)))
 		.addComponent(Damaging, new Damaging(damage))
 		.build();
 };
+
+// 0 = u2 + 2as
+// s= -u2/2a

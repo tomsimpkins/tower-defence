@@ -3,22 +3,25 @@ import { Aim } from "../components/Aim";
 import { ProjectileWeapon } from "../components/GunWeapon";
 import { MaxRange } from "../components/MaxRange";
 import { Positioned } from "../components/Positioned";
-import { GunTowerTag } from "../components/TowerTag";
+import { Targeting } from "../components/Targeting";
+import { MortarTowerTag } from "../components/TowerTag";
 import type { World } from "../core";
-import { drawGunTower } from "./drawGunTower";
 
-export const renderGunTowers = (
+import { drawMortarTower } from "./drawMortarTower";
+
+export const renderMortarTowers = (
 	world: World,
 	ctx: CanvasRenderingContext2D,
 ) => {
 	const towerEntities = world.query(
 		CenterPoint,
-		GunTowerTag,
+		MortarTowerTag,
 		ProjectileWeapon,
 		Positioned,
 		MaxRange,
 		Aim,
 	);
+
 	for (const towerEntity of towerEntities) {
 		const { x, y } = world.mustGetComponent(Positioned, towerEntity);
 		const { offsetX, offsetY } = world.mustGetComponent(
@@ -29,7 +32,7 @@ export const renderGunTowers = (
 
 		const angle = velocity ? Math.atan2(velocity.y, velocity.x) : undefined;
 
-		drawGunTower(ctx, x + offsetX, y + offsetY, {
+		drawMortarTower(ctx, x + offsetX, y + offsetY, {
 			angle,
 			firing: false,
 		});

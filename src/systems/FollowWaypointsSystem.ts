@@ -1,6 +1,6 @@
 import { CELL_SIZE } from "../globals";
 import { scale, normal } from "../core/point";
-import { CenterPoint } from "../commands/SpawnEnemyCommand";
+import { CenterPoint } from "../components/CenterPoint";
 import { FollowWaypoints } from "../components/FollowRoad";
 import { Moving } from "../components/Moving";
 import { Positioned } from "../components/Positioned";

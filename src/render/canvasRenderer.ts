@@ -1,12 +1,18 @@
 import { type World } from "../core";
-import { Interactions } from "./Interactions";
+import { UIEventBus } from "../core/UIEventBus";
+import type { IStore } from "../store";
+import { Interactions, type InteractionsState } from "./Interactions";
 
 export type RendererFn = (world: World, ctx: CanvasRenderingContext2D) => void;
 export class Renderer {
 	private ctx: CanvasRenderingContext2D;
 	private interactions: Interactions;
-	constructor(canvas: HTMLCanvasElement, world: World) {
-		this.interactions = new Interactions(canvas, world);
+	constructor(
+		canvas: HTMLCanvasElement,
+		uiEventBus: UIEventBus,
+		store: IStore<InteractionsState>,
+	) {
+		this.interactions = new Interactions(canvas, uiEventBus, store);
 		this.ctx = canvas.getContext("2d")!;
 	}
 

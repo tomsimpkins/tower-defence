@@ -207,7 +207,7 @@ export function drawDystopianRoad(
 
 export const renderRoad = (world: World, ctx: CanvasRenderingContext2D) => {
 	const w = world.resource.road;
-	const t = world.resource.wallTime / 1000; // seconds
+	const t = world.resource.ui.wallTime / 1000; // seconds
 
 	drawDystopianRoad(ctx, w.points /* your path cells */, CELL_SIZE, t);
 };

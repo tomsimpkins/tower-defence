@@ -1,7 +1,9 @@
 import { CELL_SIZE } from "../globals";
+import { CommandBus } from "./CommandBus";
 import type { HitTestMap } from "./HitTestMap";
 import { scale, type Point } from "./point";
 import type { Road } from "./Road";
+import type { UIEventBus } from "./UIEventBus";
 
 export type EntityId = number;
 
@@ -17,9 +19,7 @@ export type UIEvent =
 			shift: boolean;
 			alt: boolean;
 	  }
-	| { type: "dragend"; x: number; y: number; startX: number; startY: number }
-	| { type: "dragstart"; x: number; y: number; startX: number; startY: number }
-	| { type: "dragmove"; x: number; y: number; startX: number; startY: number };
+	| { type: "dragend"; x: number; y: number; startX: number; startY: number };
 
 export type Ctor<C extends BaseComponent> = new (...args: any[]) => C;
 
@@ -29,6 +29,7 @@ export const gridDatas = {
 	empty: -1,
 	road: 0,
 	tower: 1,
+	building: 2,
 } as const;
 type GridDatas = typeof gridDatas;
 type GridDatasValue = GridDatas[keyof GridDatas];
@@ -36,11 +37,11 @@ type GridDatasValue = GridDatas[keyof GridDatas];
 export class Grid {
 	w: number;
 	h: number;
-	private data: (typeof gridDatas)[keyof typeof gridDatas][];
+	private data: GridDatasValue[];
 	constructor(w: number, h: number) {
 		this.w = w;
 		this.h = h;
-		this.data = Array.from({ length: w * h }, () => -1);
+		this.data = Array.from({ length: w * h }, () => gridDatas.empty);
 	}
 
 	private toIndex(gx: number, gy: number) {
@@ -65,6 +66,10 @@ export class Grid {
 		return this.inBounds(gx, gy) && this.data[this.toIndex(gx, gy)] !== -1;
 	}
 
+	isAvailable(gx: number, gy: number): boolean {
+		return this.inBounds(gx, gy) && this.data[this.toIndex(gx, gy)] === -1;
+	}
+
 	inBounds(gx: number, gy: number): boolean {
 		return gx >= 0 && gx < this.w && gy >= 0 && gy < this.h;
 	}
@@ -77,40 +82,36 @@ export class Grid {
 	}
 }
 
-export interface DragPlacement {
-	type: "placement";
-	tower: "gun";
-	start: Point;
-	current: Point;
-}
+export type WorldUIResource = {
+	wallTime: number;
+};
+
 export type WorldResource = {
 	map: { width: number; height: number };
 	hitTestMap: HitTestMap;
-	diagnotics: Diagnostics;
-	wallTime: number;
 	grid: Grid;
 	road: Road;
-	drag: DragPlacement | undefined;
+	ui: WorldUIResource;
 };
 
+// todo remove usage of enqueueUIEvent from world
 export class World {
 	private entities: Set<EntityId>;
 	private components: Map<Ctor<BaseComponent>, Map<EntityId, BaseComponent>>;
 	private systems: BaseSystem[];
-	private commands: BaseCommand[];
-	private events: UIEvent[];
+	private commands: CommandBus;
 
 	readonly resource: WorldResource;
 
-	constructor(resource: WorldResource) {
+	constructor(resource: WorldResource, commandBus: CommandBus) {
 		this.entities = new Set();
 		this.components = new Map();
 		this.systems = [];
-		this.commands = [];
-		this.events = [];
-
+		this.commands = commandBus;
 		this.resource = resource;
 	}
+
+	get entityCount(){return this.entities.size}
 
 	gridToWorld = (point: Point): Point => scale(CELL_SIZE, point);
 	worldToGrid = (point: Point): Point => ({
@@ -180,36 +181,20 @@ export class World {
 		return component as Component;
 	}
 
+	tick = 0;
 	update(dt: number) {
 		for (const system of this.systems) {
 			system.execute(this, dt);
 		}
+		this.tick++;
 	}
 
 	enqueueCommand(command: BaseCommand) {
-		this.commands.push(command);
-	}
-
-	enqueueUIEvent(event: UIEvent) {
-		this.events.push(event);
+		this.commands.enqueue(command);
 	}
 
 	handleCommands<Command extends BaseCommand>(type: Ctor<Command>): Command[] {
-		const handled = this.commands.filter(
-			(cmd): cmd is Command => cmd instanceof type,
-		);
-		const notHandled = this.commands.filter(
-			(cmd): cmd is Command => !(cmd instanceof type),
-		);
-		this.commands = notHandled;
-
-		return handled;
-	}
-
-	handleUIEvents(): UIEvent[] {
-		const events = this.events;
-		this.events = [];
-		return events;
+		return this.commands.handleCommands(type);
 	}
 }
 

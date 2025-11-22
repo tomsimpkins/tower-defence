@@ -1,6 +1,6 @@
 import { Targeting } from "../components/Targeting";
 import { Positioned } from "../components/Positioned";
-import { TowerTag } from "../components/TowerTag";
+import { BeamTowerTag } from "../components/TowerTag";
 import { BeamWeapon } from "../components/BeamWeapon";
 import { MaxRange } from "../components/MaxRange";
 import { MinRange } from "../components/MinRange";
@@ -9,7 +9,8 @@ import {
 	RequestSpawnEntityCommand,
 	SpawnEntityCommand,
 } from "./SpawnEntityCommand";
-import { GRID_SQUARE_SIZE, WORLD_SCALE } from "../globals";
+import { GRID_SQUARE_SIZE, TOWER_SIZE, WORLD_SCALE } from "../globals";
+import { CenterPoint } from "../components/CenterPoint";
 
 export const makeSpawnBeamTowerCommand = (
 	x: number,
@@ -19,9 +20,12 @@ export const makeSpawnBeamTowerCommand = (
 		Math.floor(x / GRID_SQUARE_SIZE) * GRID_SQUARE_SIZE,
 		Math.floor(y / GRID_SQUARE_SIZE) * GRID_SQUARE_SIZE,
 	);
-	const builder = SpawnEntityCommand.builder()
 
-		.addComponent(TowerTag, new TowerTag())
+	const padding = (GRID_SQUARE_SIZE - TOWER_SIZE) / 2;
+
+	const builder = SpawnEntityCommand.builder()
+		.addComponent(CenterPoint, new CenterPoint(padding, padding))
+		.addComponent(BeamTowerTag, new BeamTowerTag())
 		.addComponent(Targeting, new Targeting())
 		.addComponent(BeamWeapon, new BeamWeapon(40))
 		.addComponent(MaxRange, new MaxRange(300 * WORLD_SCALE))

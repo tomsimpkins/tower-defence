@@ -1,7 +1,7 @@
 import { BaseSystem, type World } from "../core";
 import { Positioned } from "../components/Positioned";
 import { Targeting } from "../components/Targeting";
-import { TowerTag } from "../components/TowerTag";
+import { BeamTowerTag } from "../components/TowerTag";
 import { BeamWeapon } from "../components/BeamWeapon";
 import { DamageEntityCommand } from "./DamageEntityCommand";
 
@@ -9,7 +9,7 @@ export class BeamWeaponDamageSystem extends BaseSystem {
 	execute(world: World, dt: number): void {
 		const towerEntities = world.query(
 			Positioned,
-			TowerTag,
+			BeamTowerTag,
 			BeamWeapon,
 			Targeting,
 		);

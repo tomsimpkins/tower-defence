@@ -163,6 +163,45 @@ export class HitTestMap {
 		}
 	}
 
+	intersectsCircle(x: number, y: number, r: number): EntityId[] {
+		const result: EntityId[] = [];
+		const [x0, y0, x1, y1] = this.cellBounds(x - r, y - r, 2 * r, 2 * r);
+		for (let cx = x0; cx <= x1; cx++) {
+			for (let cy = y0; cy <= y1; cy++) {
+				const cell = this.getCell(cx, cy);
+
+				for (let ci = 0; ci < cell.length; ci += 2) {
+					const [type, index] = [cell[ci], cell[ci + 1]];
+					switch (type) {
+						case circleCellIndex: {
+							const circle = this.circles[index];
+
+							if (
+								this.circleOnCircleIntersection(circle, {
+									x,
+									y,
+									r,
+								})
+							) {
+								result.push(circle.entityId);
+							}
+							break;
+						}
+						case rectCellIndex: {
+							const rect = this.rects[index];
+							if (this.circleOnRectIntersection({ x, y, r }, rect)) {
+								result.push(rect.entityId);
+							}
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		return result;
+	}
+
 	clear() {
 		this.rects = [];
 		this.circles = [];

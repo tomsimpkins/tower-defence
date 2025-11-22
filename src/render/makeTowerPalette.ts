@@ -11,7 +11,7 @@ export function makeTowerPalette(overrides = {}) {
 		slitBg: "#111826",
 		highlight: "rgba(255,255,255,0.12)", // subtle rim light
 		shadow: "rgba(0,0,0,0.14)",
-		gunAccent: "#cfe8ff", // default team/accent for gun
+		gunAccent: "#87e6ff", // default team/accent for gun
 		beamAccent: "#87e6ff", // default team/accent for beam
 	};
 	return Object.assign(p, overrides);

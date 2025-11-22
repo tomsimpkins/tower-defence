@@ -1,7 +1,7 @@
 import { BaseSystem, type World } from "../core";
 import { EnemyTag } from "../components/EnemyTag";
 import { Positioned } from "../components/Positioned";
-import { DespawnEntityCommand } from "./DespawnEntityCommand";
+import { DespawnEntityCommand } from "../commands/DespawnEntityCommand";
 import { CELL_SIZE } from "../globals";
 
 export class EnemyCleanupSystem extends BaseSystem {

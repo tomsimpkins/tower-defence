@@ -1,7 +1,8 @@
+import { CenterPoint } from "../components/CenterPoint";
 import { BeamWeapon } from "../components/BeamWeapon";
 import { Positioned } from "../components/Positioned";
 import { Targeting } from "../components/Targeting";
-import { TowerTag } from "../components/TowerTag";
+import { BeamTowerTag } from "../components/TowerTag";
 import type { World } from "../core";
 
 import { CELL_SIZE, ENEMY_SIZE, TOWER_SIZE } from "../globals";
@@ -125,7 +126,7 @@ function drawBeam(
 }
 
 export const renderBeams = (world: World, ctx: CanvasRenderingContext2D) => {
-	const towers = world.query(TowerTag, BeamWeapon, Targeting);
+	const towers = world.query(BeamTowerTag, BeamWeapon, Targeting);
 	for (const tower of towers) {
 		const { target: targetEnemy } = world.mustGetComponent(Targeting, tower);
 
@@ -133,9 +134,16 @@ export const renderBeams = (world: World, ctx: CanvasRenderingContext2D) => {
 			continue;
 		}
 
+		const { offsetX, offsetY } = world.mustGetComponent(CenterPoint, tower);
 		const { x, y } = world.mustGetComponent(Positioned, tower);
 		const { x: tx, y: ty } = world.mustGetComponent(Positioned, targetEnemy);
 		const m = (CELL_SIZE - ENEMY_SIZE) / 2;
-		drawBeam(ctx, x + TOWER_SIZE / 2, y + TOWER_SIZE / 2, tx + m, ty + m);
+		drawBeam(
+			ctx,
+			x + offsetX + TOWER_SIZE / 2,
+			y + offsetY + TOWER_SIZE / 2,
+			tx + m,
+			ty + m,
+		);
 	}
 };

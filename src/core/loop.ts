@@ -1,25 +1,29 @@
 import { World } from "./world";
 
-const FIXED_DT = 1000 / 60; // timeslice for 60 fps: milliseconds per frame
-let last = performance.now(),
-	acc = 0;
+const FIXED_DT_MS = 1000 / 60; // timeslice for 60 fps: milliseconds per frame
+const FIXED_DT_S = FIXED_DT_MS / 1000;
 
 export const startLoop = (world: World, render: (world: World) => void) => {
+	let last = performance.now();
+	let acc = 0;
+
 	const loop = (now: number) => {
-		world.resource.wallTime = now;
+		world.resource.ui.wallTime = now;
 
 		acc += now - last;
 		last = now;
 		if (acc > 500) acc = 500;
-		while (acc >= FIXED_DT) {
-			const dt = FIXED_DT / 1000; // dt in seconds
-			world.update(dt);
-
-			acc -= FIXED_DT;
+		while (acc >= FIXED_DT_MS) {
+			world.update(FIXED_DT_S);
+			acc -= FIXED_DT_MS;
 		}
+
 		render(world);
 		requestAnimationFrame(loop);
 	};
 
-	loop(0);
+	requestAnimationFrame((t) => {
+		last = t;
+		loop(t);
+	});
 };
